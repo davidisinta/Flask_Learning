@@ -1,6 +1,7 @@
-from flask import Flask, request
+from flask import Flask, make_response, request
 
 app = Flask(__name__)
+
 data = [
     {
         "id": "3b58aade-8415-49dd-88db-8d7bce14932a",
@@ -60,7 +61,6 @@ data = [
 ]
 
 
-
 @app.route("/data")
 def get_data():
     try:
@@ -70,7 +70,6 @@ def get_data():
             return {"message": "Data is empty"}, 500
     except NameError:
         return {"message": "Data not found"}, 404
-
 
 
 @app.route("/name_search")
@@ -92,11 +91,49 @@ def name_search():
         if query.lower() in person["first_name"].lower():
             return person
 
-    return {"message" : "Person not found error"}, 404
+    return {"message": "Person not found error"}, 404
 
 
+@app.get("/count")
+def count():
+    count = len(data)
+
+    try:
+        return {"message": f"we have found {count} items"}, 200
+
+    except NameError:
+        return {"message": "data not defined"}, 500
 
 
+@app.route("/person/<uuid:uuid>")
+def find_by_uuid(uuid):
+    for person in data:
+        if person["id"] == str(uuid):
+            return person
+    return {"message": "yute not found"}, 404
 
-if __name__ == '__main__':
-    app.run()
+
+@app.delete("/person/<uuid:uuid>")
+def delete_by_uuid(uuid):
+    for person in data:
+        if person["id"] == str(uuid):
+            data.remove(person)
+            return {"message": "yute removed"}, 204
+
+    return {"message": "yute not found"}, 404
+
+
+@app.route("/person", methods=['POST'])
+def add_by_uuid():
+    new_person = request.get_json()
+    if not new_person:
+        return {"message": "Invalid input parameter"}, 422
+
+    data.append(new_person)
+
+    return {"message": f"{new_person['id']}"}, 201
+
+
+@app.errorhandler(404)
+def api_not_found(error):
+    return {"message": "The URL you are entering does not lead to any API endpoints"}, 404
